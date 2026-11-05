@@ -1,3 +1,4 @@
+
 import calendar
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -16,6 +17,9 @@ class MonthService:
 
         year = year if year is not None else now.year
         month = month if month is not None else now.month
+
+        if not 1 <= year <= 9999:
+            raise ValueError("Year must be between 1 and 9999")
 
         if not 1 <= month <= 12:
             raise ValueError("Month must be between 1 and 12")
