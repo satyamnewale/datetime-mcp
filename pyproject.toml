@@ -1,0 +1,14 @@
+[project]
+name = "datetime-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dateparser>=1.5.0",
+    "fastmcp>=4.1.6",
+    "pydantic>=2.14.2",
+    "pydantic-settings>=2.16.2",
+    "python-dateutil>=4.0.0",
+    "tzdata>=2026.6",
+]
