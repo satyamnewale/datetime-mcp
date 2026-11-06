@@ -1,4 +1,3 @@
-
 from fastmcp import FastMCP
 
 from config.settings import settings
@@ -12,7 +11,6 @@ from services.date_parser import DateParserService
 from services.month_service import MonthService
 from services.date_difference import DateDifferenceService
 from services.time_difference import TimeDifferenceService
-
 
 # --------------------------------
 # MCP Initialization
@@ -42,8 +40,8 @@ DEFAULT_TIMEZONE = settings.default_timezone
 # ==============================================
 # 1. CURRENT DATE AND TIME TOOLS
 # ==============================================
-
-@mcp.tool()
+#  current_datetime.py from services
+@mcp.tool()  # checked -> date, day, time
 def get_current_datetime(timezone: str = DEFAULT_TIMEZONE) -> dict:
     """
     Get the current date, time, weekday and UTC information
@@ -52,7 +50,7 @@ def get_current_datetime(timezone: str = DEFAULT_TIMEZONE) -> dict:
     return current_datetime_service.get_current_datetime(timezone)
 
 
-@mcp.tool()
+@mcp.tool()  # checked -> return date day
 def get_current_date(timezone: str = DEFAULT_TIMEZONE) -> dict:
     """
     Get today's date and weekday in a specified timezone.
@@ -60,7 +58,7 @@ def get_current_date(timezone: str = DEFAULT_TIMEZONE) -> dict:
     return current_datetime_service.get_current_date(timezone)
 
 
-@mcp.tool()
+@mcp.tool()  # checked -> time timezone
 def get_current_time(timezone: str = DEFAULT_TIMEZONE) -> dict:
     """
     Get the current local time and UTC offset.
@@ -71,8 +69,8 @@ def get_current_time(timezone: str = DEFAULT_TIMEZONE) -> dict:
 # ==============================================
 # 2. TIMEZONE TOOL
 # ==============================================
-
-@mcp.tool()
+# timezome_service.py
+@mcp.tool()  # checked -> timezon name, utc offset, utc offset name
 def get_timezone_info(timezone_name: str = DEFAULT_TIMEZONE) -> dict:
     """
     Get timezone information including UTC offset,
@@ -85,12 +83,10 @@ def get_timezone_info(timezone_name: str = DEFAULT_TIMEZONE) -> dict:
 # 3. RELATIVE DATE TOOLS
 # ==============================================
 
+
 @mcp.tool()
 def calculate_relative_date(
-    amount: int,
-    unit: str,
-    direction: str,
-    timezone: str = DEFAULT_TIMEZONE
+    amount: int, unit: str, direction: str, timezone: str = DEFAULT_TIMEZONE
 ) -> dict:
     """
     Calculate a date in the past or future.
@@ -106,32 +102,24 @@ def calculate_relative_date(
 
 
 @mcp.tool()
-def get_previous_n_days(
-    n: int,
-    timezone: str = DEFAULT_TIMEZONE
-) -> dict:
+def get_previous_n_days(n: int, timezone: str = DEFAULT_TIMEZONE) -> dict:
     """
     Get the dates of the previous N days, excluding today.
     """
-    return relative_date_service.get_previous_n_days(n, timezone)
+    return relative_date_service.get_previous_n_days_and_dates(n, timezone)
 
 
 @mcp.tool()
-def get_next_n_days(
-    n: int,
-    timezone: str = DEFAULT_TIMEZONE
-) -> dict:
+def get_next_n_days(n: int, timezone: str = DEFAULT_TIMEZONE) -> dict:
     """
     Get the dates of the next N days, excluding today.
     """
-    return relative_date_service.get_next_n_days(n, timezone)
+    return relative_date_service.get_next_n_days_and_dates(n, timezone)
 
 
 @mcp.tool()
 def get_week_dates(
-    reference_date: str = "",
-    week_starts_on: int = 0,
-    timezone: str = DEFAULT_TIMEZONE
+    reference_date: str = "", week_starts_on: int = 0, timezone: str = DEFAULT_TIMEZONE
 ) -> dict:
     """
     Get all seven dates of the week containing the reference date.
@@ -140,9 +128,7 @@ def get_week_dates(
     week_starts_on: 0 for Monday, 6 for Sunday.
     """
     return relative_date_service.get_week_dates(
-        reference_date or None,
-        week_starts_on,
-        timezone
+        reference_date or None, week_starts_on, timezone
     )
 
 
@@ -150,12 +136,10 @@ def get_week_dates(
 # 4. RELATIVE DATETIME TOOL
 # ==============================================
 
+
 @mcp.tool()
 def calculate_relative_datetime(
-    amount: int,
-    unit: str,
-    direction: str,
-    timezone: str = DEFAULT_TIMEZONE
+    amount: int, unit: str, direction: str, timezone: str = DEFAULT_TIMEZONE
 ) -> dict:
     """
     Calculate a datetime before or after now.
@@ -176,28 +160,22 @@ def calculate_relative_datetime(
 
 @mcp.tool()
 def get_date_range(
-    start_date: str,
-    end_date: str,
-    timezone: str = DEFAULT_TIMEZONE
+    start_date: str, end_date: str, timezone: str = DEFAULT_TIMEZONE
 ) -> dict:
     """
     Get information about a date range including
     its total number of calendar days.
     """
-    return date_range_service.get_date_range(
-        start_date, end_date, timezone
-    )
+    return date_range_service.get_date_range(start_date, end_date, timezone)
 
 
 # ==============================================
 # 6. NATURAL LANGUAGE DATE PARSER
 # ==============================================
 
+
 @mcp.tool()
-def parse_natural_datetime(
-    expression: str,
-    timezone: str = DEFAULT_TIMEZONE
-) -> dict:
+def parse_natural_datetime(expression: str, timezone: str = DEFAULT_TIMEZONE) -> dict:
     """
     Parse natural-language date and time expressions.
 
@@ -206,59 +184,47 @@ def parse_natural_datetime(
     - Next Monday
     - 15 days ago
     """
-    return date_parser_service.parse_natural_datetime(
-        expression, timezone
-    )
+    return date_parser_service.parse_natural_datetime(expression, timezone)
 
 
 # ==============================================
 # 7. MONTH DATES TOOL
 # ==============================================
 
+
 @mcp.tool()
 def get_month_dates(
-    year: int = 0,
-    month: int = 0,
-    timezone: str = DEFAULT_TIMEZONE
+    year: int = 0, month: int = 0, timezone: str = DEFAULT_TIMEZONE
 ) -> dict:
     """
     Get every date and weekday in a particular month.
 
     If year or month is omitted, use the current year or month.
     """
-    return month_service.get_month_dates(
-        year or None,
-        month or None,
-        timezone
-    )
+    return month_service.get_month_dates(year or None, month or None, timezone)
 
 
 # ==============================================
 # 8. DATE DIFFERENCE TOOL
 # ==============================================
 
+
 @mcp.tool()
-def calculate_date_difference(
-    start_date: str,
-    end_date: str
-) -> dict:
+def calculate_date_difference(start_date: str, end_date: str) -> dict:
     """
     Calculate the number of calendar days between two dates.
     """
-    return date_difference_service.calculate_date_difference(
-        start_date, end_date
-    )
+    return date_difference_service.calculate_date_difference(start_date, end_date)
 
 
 # ==============================================
 # 9. TIME DIFFERENCE TOOL
 # ==============================================
 
+
 @mcp.tool()
 def calculate_time_difference(
-    start_datetime: str,
-    end_datetime: str,
-    timezone: str = DEFAULT_TIMEZONE
+    start_datetime: str, end_datetime: str, timezone: str = DEFAULT_TIMEZONE
 ) -> dict:
     """
     Calculate the elapsed time between two datetimes.
