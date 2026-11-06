@@ -1,99 +1,351 @@
 
+from datetime import date, datetime
 from typing import Literal
-from pydantic import BaseModel, Field, ConfigDict
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
-# -------------------------------
-# Common Models
-# -------------------------------
+DEFAULT_TIMEZONE = "Asia/Kolkata"
 
-class TimezoneInput(BaseModel):
+
+# ==========================================
+# BASE MODEL
+# ==========================================
+
+class DateTimeBaseModel(BaseModel):
+    """
+    Common configuration and validation
+    shared by all datetime input models.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True
+    )
+
+
+# ==========================================
+# COMMON INPUT MODELS
+# ==========================================
+
+class TimezoneInput(DateTimeBaseModel):
+
     timezone: str = Field(
-        default="Asia/Kolkata",
-        description="IANA timezone, e.g. Asia/Kolkata"
+        default=DEFAULT_TIMEZONE,
+        description="IANA timezone, e.g. Asia/Kolkata, Europe/Berlin or UTC."
     )
 
+    @field_validator("timezone", check_fields=False)
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
 
-class DateInput(BaseModel):
+        try:
+            ZoneInfo(value)
+
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(
+                f"Invalid or unavailable IANA timezone: {value}"
+            )
+
+        return value
+
+class DateInput(DateTimeBaseModel):
+
     date: str = Field(
-        description="Date in YYYY-MM-DD format"
+        description="Date in ISO 8601 format: YYYY-MM-DD."
+    )
+
+    @field_validator("date")
+    @classmethod
+    def validate_date_format(cls, value: str) -> str:
+
+        try:
+            date.fromisoformat(value)
+
+        except ValueError:
+            raise ValueError(
+                "Invalid date. Expected YYYY-MM-DD."
+            )
+
+        return value
+
+
+class DateRangeInput(DateTimeBaseModel):
+
+    start_date: str = Field(
+        description="Inclusive starting date in YYYY-MM-DD format."
+    )
+
+    end_date: str = Field(
+        description="Inclusive ending date in YYYY-MM-DD format."
+    )
+
+    timezone: str = Field(
+        default=DEFAULT_TIMEZONE,
+        description="IANA timezone used for the date range."
+    )
+
+    @field_validator("start_date", "end_date")
+    @classmethod
+    def validate_dates(cls, value: str) -> str:
+
+        try:
+            date.fromisoformat(value)
+
+        except ValueError:
+            raise ValueError(
+                "Invalid date. Expected YYYY-MM-DD."
+            )
+
+        return value
+
+    @model_validator(mode="after")
+    def validate_date_order(self):
+
+        start = date.fromisoformat(self.start_date)
+        end = date.fromisoformat(self.end_date)
+
+        if end < start:
+            raise ValueError(
+                "End date cannot be before start date."
+            )
+
+        return self
+
+
+# ==========================================
+# RELATIVE DATE MODELS
+# ==========================================
+
+class RelativeDateInput(TimezoneInput):
+
+    amount: int = Field(
+        strict=True,
+        ge=0,
+        description="Number of date units to move."
+    )
+
+    unit: Literal[
+        "days",
+        "weeks",
+        "months",
+        "years"
+    ] = Field(
+        description="Unit of date calculation."
+    )
+
+    direction: Literal[
+        "past",
+        "future"
+    ] = Field(
+        description="Direction of calculation: past or future."
     )
 
 
-class DateRangeInput(BaseModel):
-    start_date: str
-    end_date: str
-    timezone: str = "Asia/Kolkata"
+class DateListInput(TimezoneInput):
+
+    n: int = Field(
+        strict=True,
+        ge=1,
+        le=366,
+        description="Number of previous or upcoming days to retrieve."
+    )
 
 
-# -------------------------------
-# Relative Date Models
-# -------------------------------
+class WeekDatesInput(TimezoneInput):
 
-class RelativeDateInput(BaseModel):
-    amount: int = Field(ge=0)
-    unit: Literal["days", "weeks", "months", "years"]
-    direction: Literal["past", "future"]
-    timezone: str = "Asia/Kolkata"
+    reference_date: str | None = Field(
+        default=None,
+        description="Reference date in YYYY-MM-DD format. Defaults to today."
+    )
+
+    week_starts_on: int = Field(
+        default=0,
+        strict=True,
+        ge=0,
+        le=6,
+        description="First weekday: 0 = Monday, 6 = Sunday."
+    )
+
+    @field_validator("reference_date")
+    @classmethod
+    def validate_reference_date(cls, value):
+
+        if value is None:
+            return value
+
+        try:
+            date.fromisoformat(value)
+
+        except ValueError:
+            raise ValueError(
+                "Reference date must use YYYY-MM-DD format."
+            )
+
+        return value
 
 
-class DateListInput(BaseModel):
-    n: int = Field(ge=1, le=366)
-    timezone: str = "Asia/Kolkata"
+# ==========================================
+# RELATIVE DATETIME MODEL
+# ==========================================
 
+class RelativeDateTimeInput(TimezoneInput):
 
-class WeekDatesInput(BaseModel):
-    reference_date: str | None = None
-    week_starts_on: int = Field(default=0, ge=0, le=6)
-    timezone: str = "Asia/Kolkata"
+    amount: int = Field(
+        strict=True,
+        ge=0,
+        description="Number of time units to move."
+    )
 
-
-# -------------------------------
-# Relative Datetime Models
-# -------------------------------
-
-class RelativeDateTimeInput(BaseModel):
-    amount: int = Field(ge=0)
     unit: Literal[
         "seconds",
         "minutes",
         "hours",
         "days",
         "weeks"
-    ]
-    direction: Literal["past", "future"]
-    timezone: str = "Asia/Kolkata"
+    ] = Field(
+        description="Unit of datetime calculation."
+    )
+
+    direction: Literal[
+        "past",
+        "future"
+    ] = Field(
+        description="Direction of calculation: past or future."
+    )
 
 
-# -------------------------------
-# Natural Language Parser
-# -------------------------------
+# ==========================================
+# NATURAL LANGUAGE PARSER
+# ==========================================
 
-class DateParserInput(BaseModel):
-    expression: str = Field(min_length=1)
-    timezone: str = "Asia/Kolkata"
+class DateParserInput(TimezoneInput):
 
+    expression: str = Field(
+        min_length=1,
+        max_length=500,
+        description="Natural language date-time expression, e.g. tomorrow at 5 PM."
+    )
 
-# -------------------------------
-# Month Dates
-# -------------------------------
+    @field_validator("expression")
+    @classmethod
+    def validate_expression(cls, value: str) -> str:
 
-class MonthDatesInput(BaseModel):
-    year: int | None = Field(default=None, ge=1, le=9999)
-    month: int | None = Field(default=None, ge=1, le=12)
-    timezone: str = "Asia/Kolkata"
+        if not value.strip():
+            raise ValueError(
+                "Date-time expression cannot be empty."
+            )
 
-
-# -------------------------------
-# Difference Calculations
-# -------------------------------
-
-class DateDifferenceInput(BaseModel):
-    start_date: str
-    end_date: str
+        return value.strip()
 
 
-class TimeDifferenceInput(BaseModel):
-    start_datetime: str
-    end_datetime: str
-    timezone: str = "Asia/Kolkata"
+# ==========================================
+# MONTH DATE MODEL
+# ==========================================
+
+class MonthDatesInput(TimezoneInput):
+
+    year: int | None = Field(
+        default=None,
+        strict=True,
+        ge=1,
+        le=9999,
+        description="Year to retrieve. Defaults to the current year."
+    )
+
+    month: int | None = Field(
+        default=None,
+        strict=True,
+        ge=1,
+        le=12,
+        description="Month number from 1 to 12. Defaults to the current month."
+    )
+
+
+# ==========================================
+# DATE DIFFERENCE MODEL
+# ==========================================
+
+class DateDifferenceInput(DateTimeBaseModel):
+
+    start_date: str = Field(
+        description="Starting date in YYYY-MM-DD format."
+    )
+
+    end_date: str = Field(
+        description="Ending date in YYYY-MM-DD format."
+    )
+
+    @field_validator("start_date", "end_date")
+    @classmethod
+    def validate_dates(cls, value: str) -> str:
+
+        try:
+            date.fromisoformat(value)
+
+        except ValueError:
+            raise ValueError(
+                "Invalid date. Expected YYYY-MM-DD."
+            )
+
+        return value
+
+
+# ==========================================
+# TIME DIFFERENCE MODEL
+# ==========================================
+
+class TimeDifferenceInput(TimezoneInput):
+
+    start_datetime: str = Field(
+        description="Starting ISO 8601 datetime."
+    )
+
+    end_datetime: str = Field(
+        description="Ending ISO 8601 datetime."
+    )
+
+    @field_validator("start_datetime", "end_datetime")
+    @classmethod
+    def validate_datetime_format(cls, value: str) -> str:
+
+        try:
+            datetime.fromisoformat(value)
+
+        except ValueError:
+            raise ValueError(
+                "Invalid datetime. Expected ISO 8601 format."
+            )
+
+        return value
+
+# ==========================================
+# TIMEZONE INFO MODEL
+# ==========================================
+class TimezoneInfoInput(DateTimeBaseModel):
+
+    timezone_name: str = Field(
+        default=DEFAULT_TIMEZONE,
+        description="IANA timezone name, e.g. Asia/Kolkata."
+    )
+
+    @field_validator("timezone_name")
+    @classmethod
+    def validate_timezone_name(cls, value: str) -> str:
+
+        try:
+            ZoneInfo(value)
+
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(
+                f"Invalid or unavailable IANA timezone: {value}"
+            )
+
+        return value

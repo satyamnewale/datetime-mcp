@@ -45,7 +45,7 @@ class RelativeDateService:
             "timezone": timezone
         }
 
-    def get_previous_n_days(
+    def get_previous_n_days_and_dates(
         self,
         n: int,
         timezone: str = "Asia/Kolkata"
@@ -70,7 +70,7 @@ class RelativeDateService:
             "timezone": timezone
         }
 
-    def get_next_n_days(
+    def get_next_n_days_and_dates(
         self,
         n: int,
         timezone: str = "Asia/Kolkata"
