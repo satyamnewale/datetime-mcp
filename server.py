@@ -65,8 +65,13 @@ def get_current_datetime(
     ] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Get the current date, time, weekday and UTC information
-    for a specified timezone.
+    Get the current date and time in a specified timezone.
+    WHEN TO USE:
+    - When both current date and time are required.
+    INPUT:
+    - timezone: IANA timezone; defaults to Asia/Kolkata.
+    EXAMPLE:
+    - timezone="Europe/Berlin"
     """
 
     data = TimezoneInput.model_validate({"timezone": timezone})
@@ -81,6 +86,12 @@ def get_current_date(
 ) -> dict:
     """
     Get today's date and weekday in a specified timezone.
+    WHEN TO USE:
+    - When only the current date or weekday is needed.
+    INPUT:
+    - timezone: IANA timezone; defaults to Asia/Kolkata.
+    EXAMPLE:
+    - timezone="Asia/Kolkata"
     """
 
     data = TimezoneInput.model_validate({"timezone": timezone})
@@ -95,6 +106,12 @@ def get_current_time(
 ) -> dict:
     """
     Get the current local time and UTC offset.
+    WHEN TO USE:
+    - When the current time is needed without date calculations.
+    INPUT:
+    - timezone: IANA timezone; defaults to Asia/Kolkata.
+    EXAMPLE:
+    - timezone="America/New_York"
     """
 
     data = TimezoneInput.model_validate({"timezone": timezone})
@@ -112,8 +129,13 @@ def get_timezone_info(
     ] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Get timezone information including UTC offset,
-    abbreviation and daylight-saving status.
+    Retrieve timezone details, including UTC offset and DST information.
+    WHEN TO USE:
+    - When checking timezone properties or comparing timezone details.
+    INPUT:
+    - timezone_name: Valid IANA timezone.
+    EXAMPLE:
+    - timezone_name="Europe/Berlin"
     """
 
     data = TimezoneInfoInput.model_validate({"timezone_name": timezone_name})
@@ -143,12 +165,13 @@ def calculate_relative_date(
     ] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Calculate a date in the past or future.
-
-    Examples:
-    - 15 days ago
-    - 40 days later
-    - 2 months ago
+    Calculate a date before or after the current date.
+    WHEN TO USE:
+    - For dates such as 15 days ago or 2 months from now.
+    INPUT:
+    - amount, unit, direction and optional timezone.
+    EXAMPLE:
+    - amount=15, unit="days", direction="future"
     """
 
     data = RelativeDateInput.model_validate(
@@ -173,7 +196,16 @@ def get_previous_n_days(
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Get the dates of the previous N days, excluding today.
+    Retrieve the previous N calendar dates, excluding today.
+
+    WHEN TO USE:
+    - When a list of past dates is required.
+
+    INPUT:
+    - n: Number of previous days (1–366).
+
+    EXAMPLE:
+    - n=7
     """
 
     data = DateListInput.model_validate({"n": n, "timezone": timezone})
@@ -194,7 +226,16 @@ def get_next_n_days(
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Get the dates of the next N days, excluding today.
+    Retrieve the next N calendar dates, excluding today.
+
+    WHEN TO USE:
+    - When upcoming dates are required.
+
+    INPUT:
+    - n: Number of upcoming days (1–366).
+
+    EXAMPLE:
+    - n=7
     """
 
     data = DateListInput.model_validate({"n": n, "timezone": timezone})
@@ -219,10 +260,17 @@ def get_week_dates(
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Get all seven dates of the week containing the reference date.
+    Retrieve all seven dates of a week containing a reference date.
 
-    If reference_date is omitted, use the current date.
-    week_starts_on: 0 for Monday, 6 for Sunday.
+    WHEN TO USE:
+    - When determining the dates of a particular week.
+
+    INPUT:
+    - reference_date: Optional YYYY-MM-DD date.
+    - week_starts_on: 0=Monday, 6=Sunday.
+
+    EXAMPLE:
+    - reference_date="2026-11-06", week_starts_on=0
     """
 
     data = WeekDatesInput.model_validate(
@@ -259,12 +307,16 @@ def calculate_relative_datetime(
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Calculate a datetime before or after now.
+    Calculate a datetime before or after the current moment.
 
-    Examples:
-    - 5 hours ago
-    - 34 hours from now
-    - 90 minutes later
+    WHEN TO USE:
+    - For expressions such as 3 hours later or 30 minutes ago.
+
+    INPUT:
+    - amount, unit, direction and optional timezone.
+
+    EXAMPLE:
+    - amount=3, unit="hours", direction="future"
     """
 
     data = RelativeDateTimeInput.model_validate(
@@ -295,8 +347,16 @@ def get_date_range(
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Get information about a date range including
-    its total number of calendar days.
+    Retrieve calendar information for an inclusive date range.
+
+    WHEN TO USE:
+    - When calculating the duration or weekdays between two dates.
+
+    INPUT:
+    - start_date and end_date in YYYY-MM-DD format.
+
+    EXAMPLE:
+    - start_date="2026-11-01", end_date="2026-11-30"
     """
 
     data = DateRangeInput.model_validate(
@@ -328,12 +388,17 @@ def parse_natural_datetime(
     ] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Parse natural-language date and time expressions.
+    Convert a natural-language date/time expression into structured datetime data.
 
-    Examples:
-    - Tomorrow at 5 PM
-    - Next Monday
-    - 15 days ago
+    WHEN TO USE:
+    - When the user provides a human-readable date or time expression.
+
+    INPUT:
+    - expression: Natural-language expression.
+    - timezone: Timezone used for interpretation.
+
+    EXAMPLE:
+    - expression="Tomorrow at 5 PM"
     """
     data = DateParserInput.model_validate(
         {"expression": expression, "timezone": timezone}
@@ -364,9 +429,16 @@ def get_month_dates(
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Get every date and weekday in a particular month.
+    Retrieve all calendar dates and weekdays for a specified month.
 
-    If year or month is omitted, use the current year or month.
+    WHEN TO USE:
+    - When a complete monthly calendar date list is required.
+
+    INPUT:
+    - year and month; both optional and default to current values.
+
+    EXAMPLE:
+    - year=2026, month=11
     """
     data = MonthDatesInput.model_validate(
         {"year": year, "month": month, "timezone": timezone}
@@ -388,7 +460,16 @@ def calculate_date_difference(
     end_date: Annotated[str, Field(description="Ending date in YYYY-MM-DD format.")],
 ) -> dict:
     """
-    Calculate the number of calendar days between two dates.
+    Calculate the calendar-day difference between two dates.
+
+    WHEN TO USE:
+    - When determining the number of days between dates.
+
+    INPUT:
+    - start_date and end_date in YYYY-MM-DD format.
+
+    EXAMPLE:
+    - start_date="2026-11-01", end_date="2026-11-10"
     """
     data = DateDifferenceInput.model_validate(
         {"start_date": start_date, "end_date": end_date}
@@ -413,7 +494,17 @@ def calculate_time_difference(
     ] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
-    Calculate the elapsed time between two datetimes.
+    Calculate elapsed time between two ISO 8601 datetimes.
+
+    WHEN TO USE:
+    - When calculating hours, minutes or seconds between timestamps.
+
+    INPUT:
+    - start_datetime, end_datetime and optional timezone.
+
+    EXAMPLE:
+    - start_datetime="2026-11-06T10:00:00"
+    - end_datetime="2026-11-06T12:30:00"
     """
     data = TimeDifferenceInput.model_validate(
         {
