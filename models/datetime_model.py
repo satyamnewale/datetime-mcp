@@ -1,15 +1,23 @@
-from typing import Literal
-from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
-from datetime import datetime, date
+from datetime import date, datetime
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
+
 
 DEFAULT_TIMEZONE = "Asia/Kolkata"
 
-# -------------------------------
-# Base Models
-# -------------------------------
 
+# ==========================================
+# BASE MODEL
+# ==========================================
 
 class DateTimeBaseModel(BaseModel):
     """
@@ -17,35 +25,42 @@ class DateTimeBaseModel(BaseModel):
     shared by all datetime input models.
     """
 
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    @field_validator("timezone", check_fields=False)
-    @classmethod
-    def validate_timezone(cls, value: str) -> str:
-        try:
-            ZoneInfo(value)
-        except (ZoneInfoNotFoundError, ValueError):
-            raise ValueError(f"Invalid or unavailable IANA timezone: {value}")
-
-        return value
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True
+    )
 
 
-# -------------------------------
-# Common Input Models
-# -------------------------------
-
+# ==========================================
+# COMMON INPUT MODELS
+# ==========================================
 
 class TimezoneInput(DateTimeBaseModel):
 
     timezone: str = Field(
         default=DEFAULT_TIMEZONE,
-        description="IANA timezone, eg. Asia/Kolkata, Europe/London or UTC.",
+        description="IANA timezone, e.g. Asia/Kolkata, Europe/Berlin or UTC."
     )
 
+    @field_validator("timezone", check_fields=False)
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+
+        try:
+            ZoneInfo(value)
+
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(
+                f"Invalid or unavailable IANA timezone: {value}"
+            )
+
+        return value
 
 class DateInput(DateTimeBaseModel):
 
-    date: str = Field(description="Date in ISO 8601 format: YYYY-MM-DD.")
+    date: str = Field(
+        description="Date in ISO 8601 format: YYYY-MM-DD."
+    )
 
     @field_validator("date")
     @classmethod
@@ -55,66 +70,92 @@ class DateInput(DateTimeBaseModel):
             date.fromisoformat(value)
 
         except ValueError:
-            raise ValueError("Invalid date. Expected YYYY-MM-DD.")
+            raise ValueError(
+                "Invalid date. Expected YYYY-MM-DD."
+            )
 
         return value
 
 
 class DateRangeInput(DateTimeBaseModel):
+
     start_date: str = Field(
-        description="Inclusive starting date in format: YYYY-MM-DD."
+        description="Inclusive starting date in YYYY-MM-DD format."
     )
-    end_date: str = Field(description="Inclusive ending date in format: YYYY-MM-DD.")
+
+    end_date: str = Field(
+        description="Inclusive ending date in YYYY-MM-DD format."
+    )
+
     timezone: str = Field(
         default=DEFAULT_TIMEZONE,
-        description="IANA timezone used for date range, eg. Asia/Kolkata, Europe/London or UTC.",
+        description="IANA timezone used for the date range."
     )
 
     @field_validator("start_date", "end_date")
     @classmethod
-    def validate_date_format(cls, value: str) -> str:
+    def validate_dates(cls, value: str) -> str:
 
         try:
             date.fromisoformat(value)
 
         except ValueError:
-            raise ValueError("Invalid date. Expected YYYY-MM-DD.")
+            raise ValueError(
+                "Invalid date. Expected YYYY-MM-DD."
+            )
 
         return value
 
     @model_validator(mode="after")
-    def valide_date_order(self):
+    def validate_date_order(self):
 
         start = date.fromisoformat(self.start_date)
         end = date.fromisoformat(self.end_date)
 
         if end < start:
-            raise ValueError("End date cannot be before start date")
+            raise ValueError(
+                "End date cannot be before start date."
+            )
 
         return self
 
 
-# -------------------------------
-# Relative Date Models
-# -------------------------------
-
+# ==========================================
+# RELATIVE DATE MODELS
+# ==========================================
 
 class RelativeDateInput(TimezoneInput):
-    amount: int = Field(strict=True, ge=0, description="number of date units to move")
-    unit: Literal["days", "weeks", "months", "years"] = Field(
-        description="unit od date calculations"
+
+    amount: int = Field(
+        strict=True,
+        ge=0,
+        description="Number of date units to move."
     )
-    direction: Literal["past", "future"] = Field(
+
+    unit: Literal[
+        "days",
+        "weeks",
+        "months",
+        "years"
+    ] = Field(
+        description="Unit of date calculation."
+    )
+
+    direction: Literal[
+        "past",
+        "future"
+    ] = Field(
         description="Direction of calculation: past or future."
     )
 
 
 class DateListInput(TimezoneInput):
+
     n: int = Field(
+        strict=True,
         ge=1,
         le=366,
-        strict=True,
-        description="Number of previous or upcoming days to retrieve.",
+        description="Number of previous or upcoming days to retrieve."
     )
 
 
@@ -122,7 +163,7 @@ class WeekDatesInput(TimezoneInput):
 
     reference_date: str | None = Field(
         default=None,
-        description="Reference date in YYYY-MM-DD format. Defaults to today.",
+        description="Reference date in YYYY-MM-DD format. Defaults to today."
     )
 
     week_starts_on: int = Field(
@@ -130,30 +171,33 @@ class WeekDatesInput(TimezoneInput):
         strict=True,
         ge=0,
         le=6,
-        description="First weekday: 0 = Monday, 6 = Sunday.",
+        description="First weekday: 0 = Monday, 6 = Sunday."
     )
 
     @field_validator("reference_date")
     @classmethod
     def validate_reference_date(cls, value):
+
         if value is None:
             return value
 
-        try :
+        try:
             date.fromisoformat(value)
 
         except ValueError:
-            raise ValueError("Invalid date. Expected YYYY-MM-DD.")
+            raise ValueError(
+                "Reference date must use YYYY-MM-DD format."
+            )
 
         return value
 
 
-# -------------------------------
-# Relative Datetime Models
-# -------------------------------
-
+# ==========================================
+# RELATIVE DATETIME MODEL
+# ==========================================
 
 class RelativeDateTimeInput(TimezoneInput):
+
     amount: int = Field(
         strict=True,
         ge=0,
@@ -178,12 +222,12 @@ class RelativeDateTimeInput(TimezoneInput):
     )
 
 
-# -------------------------------
-# Natural Language Parser
-# -------------------------------
-
+# ==========================================
+# NATURAL LANGUAGE PARSER
+# ==========================================
 
 class DateParserInput(TimezoneInput):
+
     expression: str = Field(
         min_length=1,
         max_length=500,
@@ -192,19 +236,22 @@ class DateParserInput(TimezoneInput):
 
     @field_validator("expression")
     @classmethod
-    def validate_expression(cls, value : str) -> str :
+    def validate_expression(cls, value: str) -> str:
 
         if not value.strip():
-            raise ValueError("date-time expression cannot be empty.")
+            raise ValueError(
+                "Date-time expression cannot be empty."
+            )
 
         return value.strip()
 
-# -------------------------------
-# Month Dates
-# -------------------------------
 
+# ==========================================
+# MONTH DATE MODEL
+# ==========================================
 
 class MonthDatesInput(TimezoneInput):
+
     year: int | None = Field(
         default=None,
         strict=True,
@@ -222,12 +269,12 @@ class MonthDatesInput(TimezoneInput):
     )
 
 
-# -------------------------------
-# Difference Calculations
-# -------------------------------
-
+# ==========================================
+# DATE DIFFERENCE MODEL
+# ==========================================
 
 class DateDifferenceInput(DateTimeBaseModel):
+
     start_date: str = Field(
         description="Starting date in YYYY-MM-DD format."
     )
@@ -238,21 +285,25 @@ class DateDifferenceInput(DateTimeBaseModel):
 
     @field_validator("start_date", "end_date")
     @classmethod
-    def validate_date_format(cls, value : str) -> str:
+    def validate_dates(cls, value: str) -> str:
 
-        try :
+        try:
             date.fromisoformat(value)
 
         except ValueError:
-            raise ValueError("Invalid date. Expected YYYY-MM-DD.")
+            raise ValueError(
+                "Invalid date. Expected YYYY-MM-DD."
+            )
 
         return value
+
 
 # ==========================================
 # TIME DIFFERENCE MODEL
 # ==========================================
 
 class TimeDifferenceInput(TimezoneInput):
+
     start_datetime: str = Field(
         description="Starting ISO 8601 datetime."
     )
@@ -271,6 +322,30 @@ class TimeDifferenceInput(TimezoneInput):
         except ValueError:
             raise ValueError(
                 "Invalid datetime. Expected ISO 8601 format."
+            )
+
+        return value
+
+# ==========================================
+# TIMEZONE INFO MODEL
+# ==========================================
+class TimezoneInfoInput(DateTimeBaseModel):
+
+    timezone_name: str = Field(
+        default=DEFAULT_TIMEZONE,
+        description="IANA timezone name, e.g. Asia/Kolkata."
+    )
+
+    @field_validator("timezone_name")
+    @classmethod
+    def validate_timezone_name(cls, value: str) -> str:
+
+        try:
+            ZoneInfo(value)
+
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(
+                f"Invalid or unavailable IANA timezone: {value}"
             )
 
         return value
