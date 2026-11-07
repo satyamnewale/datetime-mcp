@@ -1,5 +1,7 @@
-from datetime import date
 
+from utils.datetime_utils import get_date_difference
+from utils.formatters import format_date
+from utils.validator import validate_date
 
 class DateDifferenceService:
 
@@ -9,18 +11,19 @@ class DateDifferenceService:
         end_date: str
     ) -> dict:
 
-        start = date.fromisoformat(start_date)
-        end = date.fromisoformat(end_date)
+        start = validate_date(start_date)
+        end = validate_date(end_date)
 
-        difference = (end - start).days
+        difference = get_date_difference(start, end)
+        absolute_difference = abs(difference)
 
         return {
-            "start_date": start.isoformat(),
-            "end_date": end.isoformat(),
-            "difference_days": abs(difference),
+            "start_date": format_date(start),
+            "end_date": format_date(end),
+            "difference_days": absolute_difference,
             "signed_difference_days": difference,
-            "difference_weeks": abs(difference) // 7,
-            "remaining_days": abs(difference) % 7,
+            "difference_weeks": absolute_difference // 7,
+            "remaining_days": absolute_difference % 7,
             "direction": (
                 "future" if difference > 0
                 else "past" if difference < 0

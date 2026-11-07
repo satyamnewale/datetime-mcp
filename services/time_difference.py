@@ -1,5 +1,8 @@
-from datetime import datetime
-from zoneinfo import ZoneInfo
+
+from utils.timezone_utils import get_timezone, convert_to_utc
+from utils.datetime_utils import get_elapsed_time_difference
+from utils.formatters import format_duration
+from utils.validator import validate_datetime
 
 
 class TimeDifferenceService:
@@ -11,25 +14,47 @@ class TimeDifferenceService:
         timezone: str = "Asia/Kolkata"
     ) -> dict:
 
-        tz = ZoneInfo(timezone)
+        # 1. Validate and retrieve timezone
+        tz = get_timezone(timezone)
 
-        start = datetime.fromisoformat(start_datetime)
-        end = datetime.fromisoformat(end_datetime)
+        # 2. Validate and parse datetime strings
+        start = validate_datetime(start_datetime)
+        end = validate_datetime(end_datetime)
 
+        # 3. Attach the supplied timezone only to naive datetimes
         if start.tzinfo is None:
             start = start.replace(tzinfo=tz)
 
         if end.tzinfo is None:
             end = end.replace(tzinfo=tz)
 
-        # Compare actual instants rather than local wall-clock values.
-        difference = (
-            end.astimezone(ZoneInfo("UTC"))
-            - start.astimezone(ZoneInfo("UTC"))
+        # 4. Convert both timestamps to UTC
+        start_utc = convert_to_utc(start)
+        end_utc = convert_to_utc(end)
+
+        # 5. Calculate signed elapsed difference
+        difference = get_elapsed_time_difference(
+            start_utc,
+            end_utc
         )
 
-        total_seconds = int(abs(difference.total_seconds()))
+        signed_seconds = int(difference.total_seconds())
+        total_seconds = abs(signed_seconds)
 
+        # 6. Format duration
+        duration = format_duration(total_seconds)
+
+        # 7. Determine direction
+        if signed_seconds > 0:
+            direction = "future"
+
+        elif signed_seconds < 0:
+            direction = "past"
+
+        else:
+            direction = "same_time"
+
+        # 8. Return structured result
         return {
             "start_datetime": start.isoformat(),
             "end_datetime": end.isoformat(),
@@ -37,10 +62,7 @@ class TimeDifferenceService:
             "difference_minutes": total_seconds // 60,
             "difference_hours": round(total_seconds / 3600, 2),
             "difference_days": round(total_seconds / 86400, 2),
-            "direction": (
-                "future" if difference.total_seconds() > 0
-                else "past" if difference.total_seconds() < 0
-                else "same_time"
-            ),
+            "direction": direction,
+            "duration": duration,
             "timezone": timezone
         }
