@@ -1,5 +1,10 @@
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from datetime import datetime
+
+from utils.timezone_utils import (
+    get_timezone_details,
+    convert_to_utc,
+)
 
 
 class TimezoneService:
@@ -7,20 +12,23 @@ class TimezoneService:
     def get_timezone_info(self, timezone_name: str) -> dict:
 
         try:
-            tz = ZoneInfo(timezone_name)
-            now = datetime.now(tz)
+            details = get_timezone_details(timezone_name)
+
+            current = datetime.fromisoformat(
+                details["current_datetime"]
+            )
 
             return {
-                "timezone": timezone_name,
-                "utc_offset": now.strftime("%z"),
-                "utc_offset_name": now.strftime("%Z"),
-                "is_dst": bool(now.dst()),
-                "current_datetime": now.isoformat(),
-                "utc_datetime": datetime.now(timezone.utc).isoformat()
+                "timezone": details["timezone"],
+                "utc_offset": details["utc_offset"].replace(":", ""),
+                "utc_offset_name": details["timezone_abbreviation"],
+                "is_dst": details["is_dst"],
+                "current_datetime": details["current_datetime"],
+                "utc_datetime": convert_to_utc(current).isoformat()
             }
 
-        except ZoneInfoNotFoundError:
+        except ValueError as exc:
             return {
                 "success": False,
-                "error": f"Invalid or unavailable timezone: {timezone_name}"
+                "error": str(exc)
             }

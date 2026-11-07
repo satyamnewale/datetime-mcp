@@ -1,6 +1,22 @@
-from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
-from dateutil.relativedelta import relativedelta
+from datetime import date
+
+from utils.datetime_utils import (
+    get_current_date,
+    add_days,
+    add_weeks,
+    add_months,
+    add_years,
+    get_week_start,
+)
+from utils.formatters import format_date, format_date_list
+
+from utils.validator import (
+    validate_amount,
+    validate_unit,
+    validate_week_start,
+    validate_date,
+    SUPPORTED_DATE_UNITS,
+)
 
 
 class RelativeDateService:
@@ -13,31 +29,28 @@ class RelativeDateService:
         timezone: str = "Asia/Kolkata"
     ) -> dict:
 
-        today = datetime.now(ZoneInfo(timezone)).date()
+        amount = validate_amount(amount)
+        unit = validate_unit(unit, SUPPORTED_DATE_UNITS)
 
-        if amount < 0:
-            raise ValueError("Amount must be non-negative")
-
-        if direction not in ("past", "future"):
+        if direction not in ("past", "future") :
             raise ValueError("Direction must be past or future")
 
-        if unit not in ("days", "weeks", "months", "years"):
-            raise ValueError("Unsupported date unit")
+        today = get_current_date(timezone)
 
         sign = -1 if direction == "past" else 1
 
-        if unit == "days":
-            result = today + timedelta(days=sign * amount)
-        elif unit == "weeks":
-            result = today + timedelta(weeks=sign * amount)
-        elif unit == "months":
-            result = today + relativedelta(months=sign * amount)
-        else:
-            result = today + relativedelta(years=sign * amount)
+        operations = {
+            "days" : add_days,
+            "weeks" : add_weeks,
+            "months" : add_months,
+            "years" : add_years
+        }
+
+        result = operations[unit](today, sign * amount)
 
         return {
-            "original_date": today.isoformat(),
-            "result_date": result.isoformat(),
+            "original_date": format_date(today),
+            "result_date": format_date(result),
             "day": result.strftime("%A"),
             "amount": amount,
             "unit": unit,
@@ -51,21 +64,17 @@ class RelativeDateService:
         timezone: str = "Asia/Kolkata"
     ) -> dict:
 
-        if n < 1:
-            raise ValueError("n must be at least 1")
+        n = validate_amount(n, minimum = 1)
 
-        today = datetime.now(ZoneInfo(timezone)).date()
+        today = get_current_date(timezone)
 
         dates = [
-            today - timedelta(days=i)
-            for i in range(n, 0, -1)
+            add_days(today, i)
+            for i in range(-n, 0)
         ]
 
         return {
-            "dates": [
-                {"date": d.isoformat(), "day": d.strftime("%A")}
-                for d in dates
-            ],
+            "dates": format_date_list(dates),
             "count": len(dates),
             "timezone": timezone
         }
@@ -76,21 +85,17 @@ class RelativeDateService:
         timezone: str = "Asia/Kolkata"
     ) -> dict:
 
-        if n < 1:
-            raise ValueError("n must be at least 1")
+        n = validate_amount(n, minimum = 1)
 
-        today = datetime.now(ZoneInfo(timezone)).date()
+        today = get_current_date(timezone)
 
         dates = [
-            today + timedelta(days=i)
+            add_days(today, i)
             for i in range(1, n + 1)
         ]
 
         return {
-            "dates": [
-                {"date": d.isoformat(), "day": d.strftime("%A")}
-                for d in dates
-            ],
+            "dates": format_date_list(dates),
             "count": len(dates),
             "timezone": timezone
         }
@@ -102,28 +107,24 @@ class RelativeDateService:
         timezone: str = "Asia/Kolkata"
     ) -> dict:
 
-        if not 0 <= week_starts_on <= 6:
-            raise ValueError("week_starts_on must be between 0 and 6")
+        week_starts_on = validate_week_start(week_starts_on)
 
-        if reference_date:
-            current = date.fromisoformat(reference_date)
-        else:
-            current = datetime.now(ZoneInfo(timezone)).date()
+        current = (
+            validate_date(reference_date)
+            if reference_date
+            else get_current_date(timezone)
+        )
 
-        offset = (current.weekday() - week_starts_on) % 7
-        start = current - timedelta(days=offset)
+        start = get_week_start(current, week_starts_on)
 
         dates = [
-            start + timedelta(days=i)
+            add_days(start, i)
             for i in range(7)
         ]
 
         return {
-            "week_start": dates[0].isoformat(),
-            "week_end": dates[-1].isoformat(),
-            "dates": [
-                {"date": d.isoformat(), "day": d.strftime("%A")}
-                for d in dates
-            ],
+            "week_start": format_date(dates[0]),
+            "week_end": format_date(dates[-1]),
+            "dates": format_date_list(dates),
             "timezone": timezone
         }

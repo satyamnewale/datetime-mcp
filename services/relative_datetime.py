@@ -1,6 +1,18 @@
-from datetime import datetime, timedelta, timezone as utc_timezone
-from zoneinfo import ZoneInfo
 
+from datetime import timedelta
+
+from utils.datetime_utils import get_current_datetime
+from utils.timezone_utils import convert_to_utc
+from utils.formatters import format_datetime_response
+from utils.validator import validate_amount, validate_unit
+
+SUPPORTED_TIME_UNITS = {
+    "seconds",
+    "minutes",
+    "hours",
+    "days",
+    "weeks"
+}
 
 class RelativeDateTimeService:
 
@@ -12,38 +24,34 @@ class RelativeDateTimeService:
         timezone: str = "Asia/Kolkata"
     ) -> dict:
 
-        if amount < 0:
-            raise ValueError("Amount must be non-negative")
+        amount = validate_amount(amount)
+        unit = validate_unit(unit, SUPPORTED_TIME_UNITS)
 
         if direction not in ("past", "future"):
             raise ValueError("Direction must be past or future")
 
-        units = {
-            "seconds": "seconds",
-            "minutes": "minutes",
-            "hours": "hours",
-            "days": "days",
-            "weeks": "weeks"
-        }
+        now = get_current_datetime(timezone)
 
-        if unit not in units:
-            raise ValueError("Unsupported time unit")
+        delta = timedelta(**{unit: amount})
 
-        now = datetime.now(ZoneInfo(timezone))
+        result = (
+            now - delta
+            if direction == "past"
+            else now + delta
+        )
 
-        delta = timedelta(**{units[unit]: amount})
+        response = format_datetime_response(result)
 
-        result = now - delta if direction == "past" else now + delta
-
-        return {
+        response.update({
             "original_datetime": now.isoformat(),
             "result_datetime": result.isoformat(),
             "result_date": result.date().isoformat(),
             "result_time": result.strftime("%H:%M:%S"),
-            "day": result.strftime("%A"),
             "timezone": timezone,
-            "utc_datetime": result.astimezone(utc_timezone.utc).isoformat(),
+            "utc_datetime": convert_to_utc(result).isoformat(),
             "amount": amount,
             "unit": unit,
             "direction": direction
-        }
+        })
+
+        return response

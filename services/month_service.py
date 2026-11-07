@@ -1,8 +1,8 @@
-
 import calendar
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import date
 
+from utils.datetime_utils import get_current_datetime
+from utils.formatters import format_date_list
 
 class MonthService:
 
@@ -13,7 +13,7 @@ class MonthService:
         timezone: str = "Asia/Kolkata"
     ) -> dict:
 
-        now = datetime.now(ZoneInfo(timezone))
+        now = get_current_datetime(timezone)
 
         year = year if year is not None else now.year
         month = month if month is not None else now.month
@@ -27,12 +27,7 @@ class MonthService:
         _, total_days = calendar.monthrange(year, month)
 
         dates = [
-            {
-                "date": f"{year:04d}-{month:02d}-{day:02d}",
-                "day": calendar.day_name[
-                    calendar.weekday(year, month, day)
-                ]
-            }
+            date(year, month, day)
             for day in range(1, total_days + 1)
         ]
 
@@ -41,6 +36,6 @@ class MonthService:
             "month": month,
             "month_name": calendar.month_name[month],
             "total_days": total_days,
-            "dates": dates,
+            "dates": format_date_list(dates),
             "timezone": timezone
         }

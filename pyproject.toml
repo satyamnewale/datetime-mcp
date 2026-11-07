@@ -21,3 +21,27 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-mock>=3.17.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+
+markers = [
+    "unit: Unit tests for utilities",
+    "service: Service-level tests",
+    "model: Pydantic model validation tests",
+    "integration: MCP integration tests",
+    "contract: MCP tool schema and interface tests",
+    "slow: Tests that take longer to execute",
+]
