@@ -34,7 +34,7 @@ from models.datetime_model import (
 # --------------------------------
 
 mcp = FastMCP("Date-Time MCP")
-
+from utils.error_handler import handle_tool_errors
 
 # --------------------------------
 # Service Initialization
@@ -59,6 +59,7 @@ DEFAULT_TIMEZONE = settings.default_timezone
 # ==============================================
 #  current_datetime.py from services
 @mcp.tool()  # checked -> date, day, time
+@handle_tool_errors
 def get_current_datetime(
     timezone: Annotated[
         str, Field(description="IANA timezone, e.g. Asia/Kolkata or Europe/Berlin.")
@@ -79,6 +80,7 @@ def get_current_datetime(
 
 
 @mcp.tool()  # checked -> return date day
+@handle_tool_errors
 def get_current_date(
     timezone: Annotated[
         str, Field(description="IANA timezone, e.g. Asia/Kolkata or Europe/Berlin.")
@@ -99,6 +101,7 @@ def get_current_date(
 
 
 @mcp.tool()  # checked -> time timezone
+@handle_tool_errors
 def get_current_time(
     timezone: Annotated[
         str, Field(description="IANA timezone, e.g. Asia/Kolkata or Europe/Berlin.")
@@ -123,6 +126,7 @@ def get_current_time(
 # ==============================================
 # timezome_service.py
 @mcp.tool()  # checked -> timezon name, utc offset, utc offset name
+@handle_tool_errors
 def get_timezone_info(
     timezone_name: Annotated[
         str, Field(description="IANA timezone name to inspect, e.g. Asia/Kolkata.")
@@ -148,6 +152,7 @@ def get_timezone_info(
 
 
 @mcp.tool()
+@handle_tool_errors
 def calculate_relative_date(
     amount: Annotated[
         int, Field(strict=True, ge=0, description="Number of date units.")
@@ -183,6 +188,7 @@ def calculate_relative_date(
 
 
 @mcp.tool()
+@handle_tool_errors
 def get_previous_n_days(
     n: Annotated[
         int,
@@ -213,6 +219,7 @@ def get_previous_n_days(
 
 
 @mcp.tool()
+@handle_tool_errors
 def get_next_n_days(
     n: Annotated[
         int,
@@ -243,6 +250,7 @@ def get_next_n_days(
 
 
 @mcp.tool()
+@handle_tool_errors
 def get_week_dates(
     reference_date: Annotated[
         str | None,
@@ -292,6 +300,7 @@ def get_week_dates(
 
 
 @mcp.tool()
+@handle_tool_errors
 def calculate_relative_datetime(
     amount: Annotated[
         int, Field(strict=True, ge=0, description="Number of time units.")
@@ -334,6 +343,7 @@ def calculate_relative_datetime(
 
 
 @mcp.tool()
+@handle_tool_errors
 def get_date_range(
     start_date: Annotated[
         str, Field(description="Inclusive start date in YYYY-MM-DD format.")
@@ -374,6 +384,7 @@ def get_date_range(
 
 
 @mcp.tool()
+@handle_tool_errors
 def parse_natural_datetime(
     expression: Annotated[
         str,
@@ -413,6 +424,7 @@ def parse_natural_datetime(
 
 
 @mcp.tool()
+@handle_tool_errors
 def get_month_dates(
     year: Annotated[
         int | None,
@@ -453,6 +465,7 @@ def get_month_dates(
 
 
 @mcp.tool()
+@handle_tool_errors
 def calculate_date_difference(
     start_date: Annotated[
         str, Field(description="Starting date in YYYY-MM-DD format.")
@@ -486,6 +499,7 @@ def calculate_date_difference(
 
 
 @mcp.tool()
+@handle_tool_errors
 def calculate_time_difference(
     start_datetime: Annotated[str, Field(description="Starting ISO 8601 datetime.")],
     end_datetime: Annotated[str, Field(description="Ending ISO 8601 datetime.")],
