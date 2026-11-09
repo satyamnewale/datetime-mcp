@@ -155,7 +155,16 @@ def get_timezone_info(
 @handle_tool_errors
 def calculate_relative_date(
     amount: Annotated[
-        int, Field(strict=True, ge=0, description="Number of date units.")
+        int,
+        Field(
+            strict=True,
+            ge=0,
+            le=settings.max_relative_date_amount,
+            description=(
+                "Number of calendar date units. "
+                f"Maximum: {settings.max_relative_date_amount}."
+            ),
+        ),
     ],
     unit: Annotated[
         Literal["days", "weeks", "months", "years"],
@@ -195,8 +204,11 @@ def get_previous_n_days(
         Field(
             strict=True,
             ge=1,
-            le=366,
-            description="Number of previous days to retrieve. Range: 1-366.",
+            le=settings.max_list_days,
+            description=(
+                "Number of previous or upcoming dates. "
+                f"Maximum: {settings.max_list_days}."
+            ),
         ),
     ],
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
@@ -226,8 +238,11 @@ def get_next_n_days(
         Field(
             strict=True,
             ge=1,
-            le=366,
-            description="Number of upcoming days to retrieve. Range: 1-366.",
+            le=settings.max_list_days,
+            description=(
+                "Number of previous or upcoming dates. "
+                f"Maximum: {settings.max_list_days}."
+            ),
         ),
     ],
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
@@ -262,9 +277,12 @@ def get_week_dates(
             strict=True,
             ge=0,
             le=6,
-            description="Week starting day: 0 = Monday, 6 = Sunday.",
+            description=(
+                "First weekday: 0 = Monday, 6 = Sunday. "
+                f"Configured default: {settings.week_starts_on}."
+            ),
         ),
-    ] = 0,
+    ] = settings.week_starts_on,
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
 ) -> dict:
     """
@@ -303,7 +321,17 @@ def get_week_dates(
 @handle_tool_errors
 def calculate_relative_datetime(
     amount: Annotated[
-        int, Field(strict=True, ge=0, description="Number of time units.")
+        int,
+        Field(
+            strict=True,
+            ge=0,
+            le=settings.max_relative_datetime_seconds,
+            description=(
+                "Number of elapsed-time units. "
+                "The effective maximum depends on the selected unit. "
+                f"Maximum duration: {settings.max_relative_datetime_seconds} seconds."
+            ),
+        ),
     ],
     unit: Annotated[
         Literal["seconds", "minutes", "hours", "days", "weeks"],

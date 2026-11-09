@@ -1,9 +1,10 @@
 from utils.datetime_utils import (
     get_current_datetime,
     get_current_date,
-    get_current_time,
 )
+
 from utils.timezone_utils import convert_to_utc
+
 from utils.formatters import (
     format_datetime_response,
     format_date,
@@ -13,7 +14,10 @@ from utils.formatters import (
 
 class CurrentDateTimeService:
 
-    def get_current_datetime(self, timezone: str = "Asia/Kolkata") -> dict:
+    def get_current_datetime(
+        self,
+        timezone: str = "Asia/Kolkata",
+    ) -> dict:
 
         now = get_current_datetime(timezone)
 
@@ -24,23 +28,30 @@ class CurrentDateTimeService:
 
         return result
 
-    def get_current_date(self, timezone: str = "Asia/Kolkata") -> dict:
+    def get_current_date(
+        self,
+        timezone: str = "Asia/Kolkata",
+    ) -> dict:
 
         today = get_current_date(timezone)
 
         return {
             "date": format_date(today),
             "day": today.strftime("%A"),
-            "timezone": timezone
+            "timezone": timezone,
         }
 
-    def get_current_time(self, timezone: str = "Asia/Kolkata") -> dict:
+    def get_current_time(
+        self,
+        timezone: str = "Asia/Kolkata",
+    ) -> dict:
 
-        current_time = get_current_time(timezone)
+        # Take one snapshot instead of calling now() twice.
         now = get_current_datetime(timezone)
 
         return {
-            "time": format_time(current_time),
+            "time": format_time(now.time()),
             "timezone": timezone,
-            "utc_offset": now.strftime("%z")
+            "utc_offset": now.strftime("%z"),
+            "datetime_iso": now.isoformat(),
         }

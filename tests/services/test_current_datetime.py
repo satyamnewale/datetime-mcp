@@ -47,3 +47,18 @@ def test_utc_datetime(service, frozen_time):
 def test_invalid_timezone(service):
     with pytest.raises(ValueError):
         service.get_current_datetime("Invalid/Timezone")
+
+@pytest.mark.service
+def test_configured_date_format(service, frozen_time, monkeypatch):
+
+    from config.settings import settings
+
+    monkeypatch.setattr(
+        settings,
+        "default_date_format",
+        "%d-%m-%Y",
+    )
+
+    result = service.get_current_date("Asia/Kolkata")
+
+    assert result["date"] == "05-11-2026"

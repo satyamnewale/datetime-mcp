@@ -376,3 +376,72 @@ def test_timezone_details_new_york_summer(monkeypatch):
 def test_timezone_details_invalid():
     with pytest.raises(ValueError, match="Invalid timezone"):
         get_timezone_details("Invalid/Timezone")
+
+@pytest.mark.unit
+def test_localize_normal_local_datetime():
+
+    naive = datetime(
+        2026, 11, 5, 15, 30
+    )
+
+    result = timezone_utils.localize_naive_datetime(
+        naive,
+        "Asia/Kolkata",
+    )
+
+    assert result.isoformat() == "2026-11-05T15:30:00+05:30"
+
+
+@pytest.mark.unit
+def test_localize_nonexistent_dst_time():
+
+    naive = datetime(
+        2026, 3, 8, 2, 30
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="does not exist",
+    ):
+        timezone_utils.localize_naive_datetime(
+            naive,
+            "America/New_York",
+        )
+
+
+@pytest.mark.unit
+def test_localize_ambiguous_dst_time():
+
+    naive = datetime(
+        2026, 11, 1, 1, 30
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="ambiguous",
+    ):
+        timezone_utils.localize_naive_datetime(
+            naive,
+            "America/New_York",
+        )
+
+
+@pytest.mark.unit
+def test_localize_preserves_aware_datetime():
+
+    aware = datetime(
+        2026,
+        11,
+        1,
+        1,
+        30,
+        tzinfo=ZoneInfo("UTC"),
+    )
+
+    result = timezone_utils.localize_naive_datetime(
+        aware,
+        "America/New_York",
+    )
+
+    assert result == aware
+    assert result.tzinfo == aware.tzinfo
