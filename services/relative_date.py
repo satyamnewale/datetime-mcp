@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from config.settings import settings
 
@@ -166,4 +166,74 @@ class RelativeDateService:
             "dates": format_date_list(dates),
             "week_starts_on": week_starts_on,
             "timezone": timezone,
+        }
+
+    
+    def get_nth_weekday(
+        self,
+        weekday: str,
+        occurrence: int,
+        reference_date: str | None = None,
+        timezone: str = "Asia/Kolkata",
+    ) -> dict:
+
+        weekdays = {
+            "Monday": 0,
+            "Tuesday": 1,
+            "Wednesday": 2,
+            "Thursday": 3,
+            "Friday": 4,
+            "Saturday": 5,
+            "Sunday": 6,
+        }
+
+        if weekday not in weekdays:
+            raise ValueError(
+                "Invalid weekday."
+            )
+
+        occurrence = validate_amount(
+            occurrence,
+            minimum=1,
+            maximum=53,
+        )
+
+        reference = (
+            validate_date(reference_date)
+            if reference_date
+            else get_current_date(timezone)
+        )
+
+        target_weekday = weekdays[weekday]
+
+        # First occurrence strictly after the reference date.
+        days_ahead = (
+            target_weekday - reference.weekday()
+        ) % 7
+
+        if days_ahead == 0:
+            days_ahead = 7
+
+        days_ahead += (occurrence - 1) * 7
+
+        try:
+
+            result = reference + timedelta(
+                days=days_ahead
+            )
+
+        except OverflowError as exc:
+
+            raise ValueError(
+                "Calculated date is outside the supported calendar range."
+            ) from exc
+
+        return {
+            "reference_date": reference.isoformat(),
+            "requested_weekday": weekday,
+            "occurrence": occurrence,
+            "result_date": result.isoformat(),
+            "day": result.strftime("%A"),
+            "timezone": timezone,
+            "calculation_type": "nth_weekday",
         }

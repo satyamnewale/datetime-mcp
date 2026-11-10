@@ -17,13 +17,13 @@ from utils.validator import (
     validate_timezone,
 )
 
-
 DEFAULT_TIMEZONE = settings.default_timezone
 
 
 # ==========================================
 # BASE MODEL
 # ==========================================
+
 
 class DateTimeBaseModel(BaseModel):
 
@@ -37,13 +37,12 @@ class DateTimeBaseModel(BaseModel):
 # TIMEZONE INPUT
 # ==========================================
 
+
 class TimezoneInput(DateTimeBaseModel):
 
     timezone: str = Field(
         default=DEFAULT_TIMEZONE,
-        description=(
-            "IANA timezone, e.g. Asia/Kolkata, Europe/Berlin or UTC."
-        ),
+        description=("IANA timezone, e.g. Asia/Kolkata, Europe/Berlin or UTC."),
     )
 
     @field_validator("timezone")
@@ -57,11 +56,10 @@ class TimezoneInput(DateTimeBaseModel):
 # DATE INPUT
 # ==========================================
 
+
 class DateInput(DateTimeBaseModel):
 
-    date: str = Field(
-        description="Date in YYYY-MM-DD format."
-    )
+    date: str = Field(description="Date in YYYY-MM-DD format.")
 
     @field_validator("date")
     @classmethod
@@ -74,15 +72,12 @@ class DateInput(DateTimeBaseModel):
 # DATE RANGE INPUT
 # ==========================================
 
+
 class DateRangeInput(TimezoneInput):
 
-    start_date: str = Field(
-        description="Inclusive starting date in YYYY-MM-DD format."
-    )
+    start_date: str = Field(description="Inclusive starting date in YYYY-MM-DD format.")
 
-    end_date: str = Field(
-        description="Inclusive ending date in YYYY-MM-DD format."
-    )
+    end_date: str = Field(description="Inclusive ending date in YYYY-MM-DD format.")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -97,16 +92,13 @@ class DateRangeInput(TimezoneInput):
         end = date.fromisoformat(self.end_date)
 
         if end < start:
-            raise ValueError(
-                "End date cannot be before start date."
-            )
+            raise ValueError("End date cannot be before start date.")
 
         total_days = (end - start).days + 1
 
         if total_days > settings.max_date_range_days:
             raise ValueError(
-                f"Date range cannot exceed "
-                f"{settings.max_date_range_days} days."
+                f"Date range cannot exceed " f"{settings.max_date_range_days} days."
             )
 
         return self
@@ -115,6 +107,7 @@ class DateRangeInput(TimezoneInput):
 # ==========================================
 # RELATIVE DATE MODEL
 # ==========================================
+
 
 class RelativeDateInput(TimezoneInput):
 
@@ -133,21 +126,18 @@ class RelativeDateInput(TimezoneInput):
         "weeks",
         "months",
         "years",
-    ] = Field(
-        description="Unit of date calculation."
-    )
+    ] = Field(description="Unit of date calculation.")
 
     direction: Literal[
         "past",
         "future",
-    ] = Field(
-        description="Direction of calculation."
-    )
+    ] = Field(description="Direction of calculation.")
 
 
 # ==========================================
 # DATE LIST MODEL
 # ==========================================
+
 
 class DateListInput(TimezoneInput):
 
@@ -166,13 +156,12 @@ class DateListInput(TimezoneInput):
 # WEEK DATES MODEL
 # ==========================================
 
+
 class WeekDatesInput(TimezoneInput):
 
     reference_date: str | None = Field(
         default=None,
-        description=(
-            "Reference date in YYYY-MM-DD format. Defaults to today."
-        ),
+        description=("Reference date in YYYY-MM-DD format. Defaults to today."),
     )
 
     week_starts_on: int = Field(
@@ -197,6 +186,7 @@ class WeekDatesInput(TimezoneInput):
 # RELATIVE DATETIME MODEL
 # ==========================================
 
+
 class RelativeDateTimeInput(TimezoneInput):
 
     amount: int = Field(
@@ -215,16 +205,30 @@ class RelativeDateTimeInput(TimezoneInput):
         "hours",
         "days",
         "weeks",
-    ] = Field(
-        description="Unit of elapsed-time calculation."
-    )
+    ] = Field(description="Unit of elapsed-time calculation.")
 
     direction: Literal[
         "past",
         "future",
-    ] = Field(
-        description="Direction of calculation."
+    ] = Field(description="Direction of calculation.")
+
+    reference_datetime: str | None = Field(
+        default=None,
+        description=(
+            "Optional ISO 8601 reference datetime. "
+            "When supplied, relative calculations use this exact instant "
+            "instead of the current time."
+        ),
     )
+
+    @field_validator("reference_datetime")
+    @classmethod
+    def validate_reference_datetime(cls, value):
+
+        if value is None:
+            return None
+
+        return validate_datetime(value).isoformat()
 
     @model_validator(mode="after")
     def validate_elapsed_duration(self):
@@ -237,9 +241,7 @@ class RelativeDateTimeInput(TimezoneInput):
             "weeks": 604800,
         }
 
-        total_seconds = (
-            self.amount * seconds_per_unit[self.unit]
-        )
+        total_seconds = self.amount * seconds_per_unit[self.unit]
 
         if total_seconds > settings.max_relative_datetime_seconds:
             raise ValueError(
@@ -255,14 +257,14 @@ class RelativeDateTimeInput(TimezoneInput):
 # NATURAL LANGUAGE PARSER MODEL
 # ==========================================
 
+
 class DateParserInput(TimezoneInput):
 
     expression: str = Field(
         min_length=1,
         max_length=500,
         description=(
-            "Natural language date-time expression, "
-            "e.g. tomorrow at 5 PM."
+            "Natural language date-time expression, " "e.g. tomorrow at 5 PM."
         ),
     )
 
@@ -273,14 +275,10 @@ class DateParserInput(TimezoneInput):
         value = value.strip()
 
         if not value:
-            raise ValueError(
-                "Date-time expression cannot be empty."
-            )
+            raise ValueError("Date-time expression cannot be empty.")
 
         if any(ord(char) < 32 and char not in "\t" for char in value):
-            raise ValueError(
-                "Date-time expression cannot contain control characters."
-            )
+            raise ValueError("Date-time expression cannot contain control characters.")
 
         return value
 
@@ -288,6 +286,7 @@ class DateParserInput(TimezoneInput):
 # ==========================================
 # MONTH DATES MODEL
 # ==========================================
+
 
 class MonthDatesInput(TimezoneInput):
 
@@ -312,15 +311,12 @@ class MonthDatesInput(TimezoneInput):
 # DATE DIFFERENCE MODEL
 # ==========================================
 
+
 class DateDifferenceInput(DateTimeBaseModel):
 
-    start_date: str = Field(
-        description="Starting date in YYYY-MM-DD format."
-    )
+    start_date: str = Field(description="Starting date in YYYY-MM-DD format.")
 
-    end_date: str = Field(
-        description="Ending date in YYYY-MM-DD format."
-    )
+    end_date: str = Field(description="Ending date in YYYY-MM-DD format.")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -333,19 +329,18 @@ class DateDifferenceInput(DateTimeBaseModel):
 # TIME DIFFERENCE MODEL
 # ==========================================
 
+
 class TimeDifferenceInput(TimezoneInput):
 
     start_datetime: str = Field(
         description=(
-            "Starting ISO 8601 datetime. "
-            "May include an explicit UTC offset."
+            "Starting ISO 8601 datetime. " "May include an explicit UTC offset."
         ),
     )
 
     end_datetime: str = Field(
         description=(
-            "Ending ISO 8601 datetime. "
-            "May include an explicit UTC offset."
+            "Ending ISO 8601 datetime. " "May include an explicit UTC offset."
         ),
     )
 
@@ -362,6 +357,7 @@ class TimeDifferenceInput(TimezoneInput):
 # TIMEZONE INFO MODEL
 # ==========================================
 
+
 class TimezoneInfoInput(DateTimeBaseModel):
 
     timezone_name: str = Field(
@@ -374,3 +370,44 @@ class TimezoneInfoInput(DateTimeBaseModel):
     def validate_timezone_name(cls, value: str) -> str:
 
         return validate_timezone(value)
+
+
+class NthWeekdayInput(TimezoneInput):
+
+    weekday: Literal[
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ] = Field(description="Weekday to locate.")
+
+    occurrence: int = Field(
+        strict=True,
+        ge=1,
+        le=53,
+        description=(
+            "Occurrence number of the weekday strictly after "
+            "the reference date. For example, 2 means the second "
+            "upcoming occurrence."
+        ),
+    )
+
+    reference_date: str | None = Field(
+        default=None,
+        description=(
+            "Reference date in YYYY-MM-DD format. "
+            "Defaults to today's date in the selected timezone."
+        ),
+    )
+
+    @field_validator("reference_date")
+    @classmethod
+    def validate_reference_date(cls, value):
+
+        if value is None:
+            return None
+
+        return validate_date(value).isoformat()

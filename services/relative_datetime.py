@@ -1,8 +1,14 @@
-from datetime import timedelta, timezone as utc_timezone
+from datetime import datetime, timedelta, timezone as utc_timezone
+
 from config.settings import settings
 
 from utils.datetime_utils import get_current_datetime
-from utils.timezone_utils import convert_to_utc
+from utils.timezone_utils import (
+    convert_to_utc,
+    get_timezone,
+    localize_naive_datetime,
+)
+
 from utils.formatters import format_datetime_response
 from utils.validator import validate_amount, validate_unit
 
@@ -25,6 +31,7 @@ SECONDS_PER_UNIT = {
 }
 
 
+
 class RelativeDateTimeService:
 
     def calculate_relative_datetime(
@@ -33,6 +40,7 @@ class RelativeDateTimeService:
         unit: str,
         direction: str,
         timezone: str = "Asia/Kolkata",
+        reference_datetime: str | None = None,
     ) -> dict:
 
         unit = validate_unit(
@@ -56,26 +64,69 @@ class RelativeDateTimeService:
                 "Direction must be past or future."
             )
 
-        now = get_current_datetime(timezone)
+        # --------------------------------------------------
+        # 1. Resolve the calculation reference
+        # --------------------------------------------------
+
+        if reference_datetime is None:
+
+            now = get_current_datetime(timezone)
+
+        else:
+
+            try:
+
+                normalized = reference_datetime.replace(
+                    "Z",
+                    "+00:00",
+                )
+
+                parsed_reference = datetime.fromisoformat(
+                    normalized
+                )
+
+            except (AttributeError, TypeError, ValueError) as exc:
+
+                raise ValueError(
+                    "reference_datetime must be a valid ISO 8601 datetime."
+                ) from exc
+
+            now = localize_naive_datetime(
+                parsed_reference,
+                timezone,
+            )
+
+            now = now.astimezone(
+                get_timezone(timezone)
+            )
+
+        # --------------------------------------------------
+        # 2. Perform elapsed-time calculation in UTC
+        # --------------------------------------------------
 
         delta = timedelta(
             **{unit: amount}
         )
 
-        # Perform elapsed arithmetic in UTC.
-        # Convert the result back to the requested timezone.
         now_utc = now.astimezone(
             utc_timezone.utc
         )
 
         if direction == "past":
+
             result_utc = now_utc - delta
+
         else:
+
             result_utc = now_utc + delta
 
         result = result_utc.astimezone(
-            now.tzinfo
+            get_timezone(timezone)
         )
+
+        # --------------------------------------------------
+        # 3. Build response
+        # --------------------------------------------------
 
         response = format_datetime_response(result)
 
@@ -91,6 +142,7 @@ class RelativeDateTimeService:
                 "unit": unit,
                 "direction": direction,
                 "calculation_type": "elapsed_duration",
+                "reference_supplied": reference_datetime is not None,
             }
         )
 

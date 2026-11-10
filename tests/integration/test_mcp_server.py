@@ -4,7 +4,6 @@ from fastmcp import Client
 
 from server import mcp
 
-
 EXPECTED_TOOLS = {
     "get_current_datetime",
     "get_current_date",
@@ -15,13 +14,13 @@ EXPECTED_TOOLS = {
     "get_previous_n_days",
     "get_next_n_days",
     "get_week_dates",
+    "get_nth_weekday",  # Newly added
     "get_date_range",
     "parse_natural_datetime",
     "get_month_dates",
     "calculate_date_difference",
     "calculate_time_difference",
 }
-
 
 @pytest.mark.integration
 @pytest.mark.asyncio

@@ -27,6 +27,7 @@ from models.datetime_model import (
     MonthDatesInput,
     DateDifferenceInput,
     TimeDifferenceInput,
+    NthWeekdayInput,
 )
 
 # --------------------------------
@@ -312,6 +313,78 @@ def get_week_dates(
     )
 
 
+@mcp.tool()
+@handle_tool_errors
+def get_nth_weekday(
+    weekday: Annotated[
+        Literal[
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ],
+        Field(description="Weekday to locate."),
+    ],
+    occurrence: Annotated[
+        int,
+        Field(
+            strict=True,
+            ge=1,
+            le=53,
+            description="Nth upcoming occurrence of the specified weekday.",
+        ),
+    ],
+    reference_date: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Reference YYYY-MM-DD date. Defaults to today.",
+        ),
+    ] = None,
+    timezone: Annotated[
+        str,
+        Field(description="IANA timezone."),
+    ] = DEFAULT_TIMEZONE,
+) -> dict:
+    """
+    Calculate the Nth occurrence of a weekday strictly after a reference date.
+
+    WHEN TO USE:
+    - The second Friday from now.
+    - The third Monday after a particular date.
+    - The next upcoming Wednesday.
+
+    IMPORTANT:
+    - The reference date itself is excluded.
+    - Occurrence 1 means the first matching weekday after reference_date.
+    - This is not the Nth weekday within a calendar month.
+
+    EXAMPLE:
+    weekday="Friday"
+    occurrence=2
+    reference_date="2026-11-10"
+    """
+
+    data = NthWeekdayInput.model_validate(
+        {
+            "weekday": weekday,
+            "occurrence": occurrence,
+            "reference_date": reference_date,
+            "timezone": timezone,
+        }
+    )
+
+    return relative_date_service.get_nth_weekday(
+        data.weekday,
+        data.occurrence,
+        data.reference_date,
+        data.timezone,
+    )
+
+
 # ==============================================
 # 4. RELATIVE DATETIME TOOL
 # ==============================================
@@ -342,6 +415,17 @@ def calculate_relative_datetime(
         Field(description="Whether to calculate into the past or future."),
     ],
     timezone: Annotated[str, Field(description="IANA timezone.")] = DEFAULT_TIMEZONE,
+    reference_datetime: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Optional ISO 8601 reference instant. "
+                "Reuse datetime_iso from get_current_datetime "
+                "for consistent calculations."
+            ),
+        ),
+    ] = None,
 ) -> dict:
     """
     Calculate a datetime before or after the current moment.
@@ -357,11 +441,17 @@ def calculate_relative_datetime(
     """
 
     data = RelativeDateTimeInput.model_validate(
-        {"amount": amount, "unit": unit, "direction": direction, "timezone": timezone}
+        {
+            "amount": amount,
+            "unit": unit,
+            "direction": direction,
+            "timezone": timezone,
+            "reference_datetime": reference_datetime,
+        }
     )
 
     return relative_datetime_service.calculate_relative_datetime(
-        data.amount, data.unit, data.direction, data.timezone
+        data.amount, data.unit, data.direction, data.timezone, data.reference_datetime
     )
 
 

@@ -123,3 +123,41 @@ def test_zero_days(service, frozen_time):
 def test_zero_previous_days(service):
     with pytest.raises(ValueError):
         service.get_previous_n_days_and_dates(0)
+
+
+def test_second_friday_after_reference_date(service):
+
+    result = service.get_nth_weekday(
+        weekday="Friday",
+        occurrence=2,
+        reference_date="2026-11-10",
+        timezone="Asia/Kolkata",
+    )
+
+    assert result["result_date"] == "2026-11-20"
+    assert result["day"] == "Friday"
+
+
+def test_first_friday_when_reference_is_thursday(service):
+
+    result = service.get_nth_weekday(
+        weekday="Friday",
+        occurrence=1,
+        reference_date="2026-11-19",
+        timezone="Asia/Kolkata",
+    )
+
+    assert result["result_date"] == "2026-11-20"
+    assert result["day"] == "Friday"
+
+
+def test_same_weekday_reference_excludes_reference_date(service):
+
+    result = service.get_nth_weekday(
+        weekday="Tuesday",
+        occurrence=1,
+        reference_date="2026-11-10",
+        timezone="Asia/Kolkata",
+    )
+
+    assert result["result_date"] == "2026-11-17"

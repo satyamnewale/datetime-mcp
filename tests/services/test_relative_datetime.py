@@ -147,3 +147,40 @@ def test_24_elapsed_hours_across_dst(service, monkeypatch):
     assert result["result_date"] == "2026-03-08"
     assert result["result_time"] == "13:00:00"
     assert result["calculation_type"] == "elapsed_duration"
+
+@pytest.mark.service
+def test_relative_datetime_uses_same_reference_instant(service):
+
+    result = service.calculate_relative_datetime(
+        amount=100,
+        unit="hours",
+        direction="future",
+        timezone="Asia/Kolkata",
+        reference_datetime="2026-11-10T11:46:26+05:30",
+    )
+
+    assert result["original_datetime"] == (
+        "2026-11-10T11:46:26+05:30"
+    )
+
+    assert result["result_datetime"] == (
+        "2026-11-14T15:46:26+05:30"
+    )
+
+    assert result["reference_supplied"] is True
+
+
+@pytest.mark.service
+def test_relative_datetime_uses_naive_reference_as_local_time(service):
+
+    result = service.calculate_relative_datetime(
+        amount=2,
+        unit="hours",
+        direction="future",
+        timezone="Asia/Kolkata",
+        reference_datetime="2026-11-10T10:00:00",
+    )
+
+    assert result["result_datetime"] == (
+        "2026-11-10T12:00:00+05:30"
+    )
