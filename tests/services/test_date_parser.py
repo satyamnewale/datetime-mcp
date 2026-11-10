@@ -59,3 +59,14 @@ def test_invalid_timezone(service):
     )
 
     assert result["success"] is False
+
+
+def test_next_weekday_datetime(service, frozen_time):
+    result = service.parse_natural_datetime(
+        "next Thursday at 1 PM",
+        "Asia/Kolkata",
+    )
+
+    assert result["success"] is True
+    assert result["date"] == "2026-11-12"
+    assert result["time"].startswith("13:00")
